@@ -56,9 +56,7 @@ local function StartCoroutine(name, method)
 end
 local function StopCoroutine(name)
 	if app.refreshing[name] then
-		debug.sethook(app.refreshing[name], function()
-			error("Coroutine Ended Externally");
-		end, "l");
+		LookingForDuelsData.ClearData = true;
 		app.refreshing[name] = nil;
 	end
 end
@@ -183,6 +181,7 @@ function CleanUpDuel()
 	LookingForDuelsData.LoseRetreatCondition = nil;
 	LookingForDuelsData.OutOfBounds = nil;
 	LookingForDuelsData.Victory = nil;
+	LookingForDuelsData.ClearData = nil;
 	_:UnregisterEvent("CHAT_MSG_SYSTEM");
 	_:UnregisterEvent("DUEL_INBOUNDS");
 	_:UnregisterEvent("DUEL_OUTOFBOUNDS");
@@ -215,6 +214,10 @@ function ProcessDuel()
 		else
 			coroutine.yield();
 		end
+		if LookingForDuelsData.ClearData then
+			LookingForDuelsData.ClearData = nil;
+			error("Clearing the Data");
+		end
 	end
 	
 	-- Notify the Player that the Duel is Starting
@@ -245,6 +248,10 @@ function ProcessDuel()
 			else
 				coroutine.yield();
 			end
+			if LookingForDuelsData.ClearData then
+				LookingForDuelsData.ClearData = nil;
+				error("Clearing the Data");
+			end
 		end
 		LookingForDuelsData.IsDueling = true;
 		_:UnregisterEvent("DUEL_FINISHED");
@@ -256,6 +263,10 @@ function ProcessDuel()
 	-- While the Duel is going on, wait.
 	while LookingForDuelsData.IsDueling do
 		coroutine.yield();
+		if LookingForDuelsData.ClearData then
+			LookingForDuelsData.ClearData = nil;
+			error("Clearing the Data");
+		end
 	end
 	
 	-- Did you Win or Lose?
