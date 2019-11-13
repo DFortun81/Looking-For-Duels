@@ -1,0 +1,18 @@
+## Author: Crieve-Atiesh
+## Interface: 11302
+## Title: Looking For Duels
+## Name: Looking For Duels
+## SavedVariables: LookingForDuelsData
+## SavedVariablesPerCharacter: LookingForDuelsDataPerCharacter
+## Notes: Addon for Tracking Duels Win/Loss Ratios
+## Version: 0.0.1
+Looking For Duels.lua
+
+
+## TipsOut Addon Idea - 16th Dueling Tournament
+## Dueling Tracker Addon
+## Tracks All Duels
+## Wins/Losses
+##	Split versus Class / Spec?
+## Duel 10 Times, Generate MMR (Match-Making Record)
+
