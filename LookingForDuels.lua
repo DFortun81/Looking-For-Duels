@@ -172,6 +172,7 @@ function PlayVictorySound()
 	end
 end
 function CleanUpDuel()
+	StopMusic();
 	LookingForDuelsData.IsDueling = nil;
 	LookingForDuelsData.IsPending = nil;
 	LookingForDuelsData.CurrentOpponentName = nil;
@@ -215,8 +216,8 @@ function ProcessDuel()
 			coroutine.yield();
 		end
 		if LookingForDuelsData.ClearData then
-			LookingForDuelsData.ClearData = nil;
-			error("Clearing the Data");
+			CleanUpDuel();
+			return 0;
 		end
 	end
 	
@@ -249,8 +250,8 @@ function ProcessDuel()
 				coroutine.yield();
 			end
 			if LookingForDuelsData.ClearData then
-				LookingForDuelsData.ClearData = nil;
-				error("Clearing the Data");
+				CleanUpDuel();
+				return 0;
 			end
 		end
 		LookingForDuelsData.IsDueling = true;
@@ -264,8 +265,8 @@ function ProcessDuel()
 	while LookingForDuelsData.IsDueling do
 		coroutine.yield();
 		if LookingForDuelsData.ClearData then
-			LookingForDuelsData.ClearData = nil;
-			error("Clearing the Data");
+			CleanUpDuel();
+			return 0;
 		end
 	end
 	
@@ -279,7 +280,6 @@ function ProcessDuel()
 	end
 	
 	-- The Duel has Ended, let's cut the music and clean up the persistent data.
-	StopMusic();
 	CleanUpDuel();
 end
 
@@ -363,6 +363,7 @@ events.DUEL_OUTOFBOUNDS = function()
 	end
 end
 events.DUEL_FINISHED = function()
-	LookingForDuelsData.IsDueling = false;
+	LookingForDuelsData.IsDueling = nil;
 	LookingForDuelsData.IsPending = nil;
+	LookingForDuelsData.ClearData = true;
 end
