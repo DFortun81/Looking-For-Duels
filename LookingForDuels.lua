@@ -10,19 +10,10 @@ app.events = events;
 local _ = CreateFrame("FRAME", nil, UIParent);
 _:SetScript("OnEvent", function(self, e, ...) (rawget(events, e) or print)(...); end);
 _:SetPoint("BOTTOMLEFT", UIParent, "TOPLEFT", 0, 0);
-_:RegisterEvent("PLAYER_LOGIN");
+_:RegisterEvent("VARIABLES_LOADED");
 _:RegisterEvent("DUEL_REQUESTED");
-_:RegisterEvent("DUEL_OUTOFBOUNDS");
-_:RegisterEvent("DUEL_FINISHED");
 _:SetSize(1, 1);
 _:Show();
-
--- Persistent Data Storage
-local LookingForDuelsData = {};
-local LookingForDuelsDataPerCharacter = {};
-
--- Temporary Data Storage
-local CurrentOpponentName, CurrentOpponent, IsDueling;
 
 -- Coroutine Helper Functions
 app.refreshing = {};
@@ -43,7 +34,6 @@ local function Push(self, name, method)
 	elseif #self.__stack < 1 then 
 		self:SetScript("OnUpdate", OnUpdate);
 	end
-	--print("Push->" .. name);
 	table.insert(self.__stack, { method, name });
 end
 local function StartCoroutine(name, method)
@@ -75,6 +65,10 @@ end
 
 -- Class Prototypes
 local DefaultSettings = { __index = {
+	BattleAudioEnabled = true,
+	BattleAudioOptions = {
+		"battle1.ogg"
+	},
 	DefeatAudioEnabled = true,
 	DefeatAudioOptions = {
 		"defeat1.ogg"
@@ -138,11 +132,18 @@ local OpponentClass = { __index = function(t, key)
 				return faction;
 			end
 		end
+	elseif key == "text" then
+		local classInfo = C_CreatureInfo.GetClassInfo(t.class);
+		local raceInfo = C_CreatureInfo.GetRaceInfo(t.race);
+		return "|c" .. (RAID_CLASS_COLORS[classInfo.classFile].colorStr or "ff1eff00") .. t.name .. " (Level " .. (t.lvl or "??") .. " " .. (raceInfo.raceName or "??").. " " .. (classInfo.className or "??") .. ")|r";
 	end
 end};
 
 
 -- Functionality
+function Print(...)
+	print("LFD: ", ...);
+end
 function PlayAddonMusic(music)
 	if music then
 		PlayMusic("Interface\\Addons\\LookingForDuels\\media\\audio\\" .. music);
@@ -157,6 +158,11 @@ end
 function PlayRandomSound(audioTable)
 	if audioTable then PlayAddonSound(audioTable[math.random(1, #audioTable)]); end
 end
+function PlayBattleMusic()
+	if LookingForDuelsData.BattleAudioEnabled then
+		PlayRandomMusic(LookingForDuelsData.BattleAudioOptions);
+	end
+end
 function PlayDefeatSound()
 	if LookingForDuelsData.DefeatAudioEnabled then
 		PlayRandomSound(LookingForDuelsData.DefeatAudioOptions);
@@ -168,7 +174,8 @@ function PlayVictorySound()
 	end
 end
 function CleanUpDuel()
-	LookingForDuelsData.IsDueling = false;
+	LookingForDuelsData.IsDueling = nil;
+	LookingForDuelsData.IsPending = nil;
 	LookingForDuelsData.CurrentOpponentName = nil;
 	LookingForDuelsData.WinCondition = nil;
 	LookingForDuelsData.WinRetreatCondition = nil;
@@ -177,17 +184,16 @@ function CleanUpDuel()
 	LookingForDuelsData.OutOfBounds = nil;
 	LookingForDuelsData.Victory = nil;
 	_:UnregisterEvent("CHAT_MSG_SYSTEM");
+	_:UnregisterEvent("DUEL_INBOUNDS");
+	_:UnregisterEvent("DUEL_OUTOFBOUNDS");
+	_:UnregisterEvent("DUEL_FINISHED");
 end
 function ProcessDuel()
-	print("STARTING DUEL: ", CurrentOpponentName);
-	
 	-- Acquire the GUID of the Opponent. [Global Persistence]
+	local CurrentOpponentName, CurrentOpponent = LookingForDuelsData.CurrentOpponentName, nil;
 	local guid = rawget(LookingForDuelsData.CachedCharacterGUIDS, CurrentOpponentName);
-	if guid then
-		CurrentOpponent = rawget(LookingForDuelsData.CachedCharacterData, guid);
-	else
-		CurrentOpponent = nil;
-	end
+	if guid then CurrentOpponent = rawget(LookingForDuelsData.CachedCharacterData, guid); end
+	Print("STARTING DUEL: ", CurrentOpponentName);
 	
 	-- Scan for Target data until the player name matches the opponent.
 	while not CurrentOpponent do
@@ -195,15 +201,14 @@ function ProcessDuel()
 			guid = UnitGUID("target");
 			if guid then
 				-- Build a Cached Character Profile for the Target
-				opponent = setmetatable({
+				CurrentOpponent = setmetatable({
 					["lvl"] = UnitLevel("target"),
 					["class"] = select(3, UnitClass("target")),
 					["race"] = select(3, UnitRace("target")),
 					["faction"] = UnitFactionGroup("target"),
 				}, OpponentClass);
 				rawset(LookingForDuelsData.CachedCharacterGUIDS, CurrentOpponentName, guid);
-				rawset(LookingForDuelsData.CachedCharacterData, guid, opponent);
-				CurrentOpponent = opponent;
+				rawset(LookingForDuelsData.CachedCharacterData, guid, CurrentOpponent);
 			else
 				coroutine.yield();
 			end
@@ -214,23 +219,55 @@ function ProcessDuel()
 	
 	-- Notify the Player that the Duel is Starting
 	local playerName = UnitName("player");
-	local classInfo = C_CreatureInfo.GetClassInfo(opponent.class);
-	local raceInfo = C_CreatureInfo.GetRaceInfo(opponent.race);
-	print("OPPONENT FOUND: |c" .. (RAID_CLASS_COLORS[classInfo.classFile].colorStr or "ff1eff00") .. CurrentOpponentName .. " (Level " .. (opponent.lvl or "??") .. " " .. (raceInfo.raceName or "??").. " " .. (classInfo.className or "??") .. ")|r");
-	LookingForDuelsData.CurrentOpponentName = CurrentOpponentName;
+	CurrentOpponent.name = CurrentOpponentName;
+	Print("OPPONENT:", CurrentOpponent.text);
 	LookingForDuelsData.WinCondition = string.format(DUEL_WINNER_KNOCKOUT, playerName, CurrentOpponentName);
 	LookingForDuelsData.WinRetreatCondition = string.format(DUEL_WINNER_RETREAT, playerName, CurrentOpponentName);
 	LookingForDuelsData.LoseCondition = string.format(DUEL_WINNER_KNOCKOUT, CurrentOpponentName, playerName);
 	LookingForDuelsData.LoseRetreatCondition = string.format(DUEL_WINNER_RETREAT, CurrentOpponentName, playerName);
-	LookingForDuelsData.IsDueling = true;
 	_:RegisterEvent("CHAT_MSG_SYSTEM");
+	_:RegisterEvent("DUEL_OUTOFBOUNDS");
+	_:RegisterEvent("DUEL_FINISHED");
+	
+	-- If the Duel hasn't already been started, then wait for it to start.
+	if not LookingForDuelsData.IsDueling then
+		-- While the Duel is pending, wait.
+		LookingForDuelsData.IsPending = true;
+		while LookingForDuelsData.IsPending do
+			if InCombatLockdown() then
+				-- We're in Combat, are we Hostile to the target?
+				if UnitIsPlayer("target") and UnitIsEnemy("player", "target") and UnitName("target") == CurrentOpponentName then
+					LookingForDuelsData.IsPending = nil;
+					break;
+				else
+					coroutine.yield();
+				end
+			else
+				coroutine.yield();
+			end
+		end
+		LookingForDuelsData.IsDueling = true;
+		_:UnregisterEvent("DUEL_FINISHED");
+	end
+	
+	-- Play that sick Battle Music!
+	PlayBattleMusic();
 	
 	-- While the Duel is going on, wait.
 	while LookingForDuelsData.IsDueling do
 		coroutine.yield();
 	end
 	
-	print("DUEL ENDED");
+	-- Did you Win or Lose?
+	if LookingForDuelsData.Victory then
+		Print(LookingForDuelsData.OutOfBounds and "YOU WIN! (OUT OF BOUNDS)" or "YOU WIN!");
+		PlayVictorySound();
+	else
+		Print(LookingForDuelsData.OutOfBounds and "YOU LOSE! (OUT OF BOUNDS)" or "YOU LOSE!");
+		PlayDefeatSound();
+	end
+	
+	-- The Duel has Ended, let's cut the music and clean up the persistent data.
 	StopMusic();
 	CleanUpDuel();
 end
@@ -244,7 +281,8 @@ StartDuel = function(target)
 end
 
 -- Event Handlers
-events.PLAYER_LOGIN = function()
+events.VARIABLES_LOADED = function()
+	if not LookingForDuelsData then LookingForDuelsData = {}; end
 	setmetatable(LookingForDuelsData, DefaultSettings);
 	if not LookingForDuelsData.CachedCharacterData then
 		LookingForDuelsData.CachedCharacterData = {};
@@ -258,56 +296,55 @@ events.PLAYER_LOGIN = function()
 	end
 	
 	-- If a Duel was previously active, let's check to see if you're still dueling.
-	if LookingForDuelsData.IsDueling and LookingForDuelsData.CurrentOpponentName then
+	if LookingForDuelsData.CurrentOpponentName then
 		events.DUEL_REQUESTED(LookingForDuelsData.CurrentOpponentName);
 	else
 		CleanUpDuel();
 	end
 end
 events.CHAT_MSG_SYSTEM = function(msg, ...)
-	print("CHAT_MSG_SYSTEM", msg, ...);
 	if LookingForDuelsData.IsDueling then
 		if msg == LookingForDuelsData.WinCondition then
-			print("YOU WIN!");
 			LookingForDuelsData.Victory = true;
 			LookingForDuelsData.OutOfBounds = nil;
-			PlayVictorySound();
+			LookingForDuelsData.IsDueling = false;
 		elseif msg == LookingForDuelsData.LoseCondition then
-			print("YOU LOSE!");
 			LookingForDuelsData.Victory = nil;
 			LookingForDuelsData.OutOfBounds = nil;
-			PlayDefeatSound();
+			LookingForDuelsData.IsDueling = false;
 		elseif msg == LookingForDuelsData.WinRetreatCondition then
-			print("YOU WIN! (OUT OF BOUNDS)");
 			LookingForDuelsData.Victory = true;
 			LookingForDuelsData.OutOfBounds = true;
-			PlayVictorySound();
+			LookingForDuelsData.IsDueling = false;
 		elseif msg == LookingForDuelsData.LoseRetreatCondition then
-			print("YOU LOSE! (OUT OF BOUNDS)");
 			LookingForDuelsData.Victory = nil;
 			LookingForDuelsData.OutOfBounds = true;
-			PlayDefeatSound();
+			LookingForDuelsData.IsDueling = false;
+		end
+	else
+		-- We must be waiting for the Duel to Start.
+		if string.find(msg, DUEL_COUNTDOWN) then
+			LookingForDuelsData.IsPending = nil;
 		end
 	end
 end
 events.DUEL_REQUESTED = function(playerName)
 	if not playerName or playerName == "" then playerName = UnitName("target"); end
 	if playerName then
-		CurrentOpponentName = select(1, UnitName(playerName)) or playerName;
+		LookingForDuelsData.CurrentOpponentName = select(1, UnitName(playerName)) or playerName;
 		StopCoroutine("ProcessDuel");
 		StartCoroutine("ProcessDuel", ProcessDuel);
 	end
 end
 events.DUEL_INBOUNDS = function()
-	print("DUEL_INBOUNDS");
 	LookingForDuelsData.OutOfBounds = nil;
 	if LookingForDuelsData.OutOfBoundsAudioEnabled then
 		StopMusic();
+		PlayBattleMusic();
 	end
 	_:UnregisterEvent("DUEL_INBOUNDS");
 end
 events.DUEL_OUTOFBOUNDS = function()
-	print("DUEL_OUTOFBOUNDS");
 	_:RegisterEvent("DUEL_INBOUNDS");
 	LookingForDuelsData.OutOfBounds = true;
 	if LookingForDuelsData.OutOfBoundsAudioEnabled then
@@ -315,6 +352,6 @@ events.DUEL_OUTOFBOUNDS = function()
 	end
 end
 events.DUEL_FINISHED = function()
-	print("DUEL_FINISHED");
 	LookingForDuelsData.IsDueling = false;
+	LookingForDuelsData.IsPending = nil;
 end
