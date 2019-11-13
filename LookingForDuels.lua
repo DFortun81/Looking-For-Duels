@@ -15,6 +15,29 @@ _:RegisterEvent("DUEL_REQUESTED");
 _:SetSize(1, 1);
 _:Show();
 
+-- Localization
+local L = {
+	TITLE = "|cffb4b4ffLookingForDuels|r",
+	PREFIX = "|cffb4b4ffLFD|r",
+	DUEL_CURRENT_TARGET = "Duel Current Target",
+	DUEL_ACCEPT = "Accept Duel",
+	DUEL_DECLINE = "Decline Duel",
+	SYNC_TARGET = "Synchronize Target",
+	SYNC_ALL = "Synchronize All Data",
+	TOGGLE_UI = "Toggle UI",
+	TOGGLE_SETTINGS_UI = "Toggle Settings UI",
+};
+
+-- Bindings
+BINDING_HEADER_LFDUELS = L.TITLE;
+BINDING_NAME_LFDUELS_DUELTARGET = L.DUEL_CURRENT_TARGET;
+BINDING_NAME_LFDUELS_DUEL_ACCEPT = L.DUEL_ACCEPT;
+BINDING_NAME_LFDUELS_DUEL_DECLINE = L.DUEL_DECLINE;
+BINDING_NAME_LFDUELS_SYNC_TARGET = L.SYNC_TARGET;
+BINDING_NAME_LFDUELS_SYNC_ALL = L.SYNC_ALL;
+BINDING_NAME_LFDUELS_TOGGLE_UI = L.TOGGLE_UI;
+BINDING_NAME_LFDUELS_TOGGLE_SETTINGS_UI = L.TOGGLE_SETTINGS_UI;
+
 -- Coroutine Helper Functions
 app.refreshing = {};
 local function OnUpdate(self)
@@ -54,9 +77,19 @@ local function StartCoroutine(name, method)
 		end);
 	end
 end
+local function StopAllCoroutines()
+	for i=#_.__stack,1,-1 do
+		table.remove(_.__stack, i);
+	end
+	_:SetScript("OnUpdate", nil);
+end
 local function StopCoroutine(name)
 	if app.refreshing[name] then
-		LookingForDuelsData.ClearData = true;
+		for i=#_.__stack,1,-1 do
+			if _.__stack[i][2] == name then
+				table.remove(_.__stack, i);
+			end
+		end
 		app.refreshing[name] = nil;
 	end
 end
@@ -137,10 +170,9 @@ local OpponentClass = { __index = function(t, key)
 	end
 end};
 
-
 -- Functionality
 function Print(...)
-	print("LFD: ", ...);
+	print(L.PREFIX .. ":", ...);
 end
 function PlayAddonMusic(music)
 	if music then
@@ -173,6 +205,9 @@ function PlayVictorySound()
 end
 function CleanUpDuel()
 	StopMusic();
+	if LookingForDuelsData.IsDueling or LookingForDuelsData.IsPending then
+		Print(ERR_DUEL_CANCELLED);
+	end
 	LookingForDuelsData.IsDueling = nil;
 	LookingForDuelsData.IsPending = nil;
 	LookingForDuelsData.CurrentOpponentName = nil;
@@ -188,12 +223,23 @@ function CleanUpDuel()
 	_:UnregisterEvent("DUEL_OUTOFBOUNDS");
 	_:UnregisterEvent("DUEL_FINISHED");
 end
+function ConfirmDuel()
+	AcceptDuel();
+	StaticPopup_Hide("DUEL_REQUESTED");
+end
+function DeclineDuel()
+	CancelDuel();
+	StaticPopup_Hide("DUEL_REQUESTED");
+end
+function DuelTarget()
+	DeclineDuel();
+	StartDuel();
+end
 function ProcessDuel()
 	-- Acquire the GUID of the Opponent. [Global Persistence]
 	local CurrentOpponentName, CurrentOpponent = LookingForDuelsData.CurrentOpponentName, nil;
 	local guid = rawget(LookingForDuelsData.CachedCharacterGUIDS, CurrentOpponentName);
 	if guid then CurrentOpponent = rawget(LookingForDuelsData.CachedCharacterData, guid); end
-	Print("STARTING DUEL: ", CurrentOpponentName);
 	
 	-- Scan for Target data until the player name matches the opponent.
 	while not CurrentOpponent do
@@ -215,28 +261,24 @@ function ProcessDuel()
 		else
 			coroutine.yield();
 		end
-		if LookingForDuelsData.ClearData then
-			CleanUpDuel();
-			return 0;
-		end
 	end
 	
 	-- Notify the Player that the Duel is Starting
 	local playerName = UnitName("player");
 	CurrentOpponent.name = CurrentOpponentName;
-	Print("OPPONENT:", CurrentOpponent.text);
+	Print(CurrentOpponent.text);
 	LookingForDuelsData.WinCondition = string.format(DUEL_WINNER_KNOCKOUT, playerName, CurrentOpponentName);
 	LookingForDuelsData.WinRetreatCondition = string.format(DUEL_WINNER_RETREAT, playerName, CurrentOpponentName);
 	LookingForDuelsData.LoseCondition = string.format(DUEL_WINNER_KNOCKOUT, CurrentOpponentName, playerName);
 	LookingForDuelsData.LoseRetreatCondition = string.format(DUEL_WINNER_RETREAT, CurrentOpponentName, playerName);
 	_:RegisterEvent("CHAT_MSG_SYSTEM");
 	_:RegisterEvent("DUEL_OUTOFBOUNDS");
-	_:RegisterEvent("DUEL_FINISHED");
 	
 	-- If the Duel hasn't already been started, then wait for it to start.
 	if not LookingForDuelsData.IsDueling then
 		-- While the Duel is pending, wait.
 		LookingForDuelsData.IsPending = true;
+		_:RegisterEvent("DUEL_FINISHED");
 		while LookingForDuelsData.IsPending do
 			if InCombatLockdown() then
 				-- We're in Combat, are we Hostile to the target?
@@ -282,7 +324,27 @@ function ProcessDuel()
 	-- The Duel has Ended, let's cut the music and clean up the persistent data.
 	CleanUpDuel();
 end
+function SyncAll()
+	Print("Placeholder function for SyncAll.");
+end
+function SyncTarget()
+	Print("Placeholder function for SyncTarget");
+end
+function ToggleUI()
+	Print("Placeholder function for ToggleUI.");
+end
+function ToggleSettingsUI()
+	Print("Placeholder function for ToggleSettingsUI.");
+end
 
+-- Exposed Functions
+LookingForDuelsAPI.ConfirmDuel = ConfirmDuel;
+LookingForDuelsAPI.DeclineDuel = DeclineDuel;
+LookingForDuelsAPI.DuelTarget = DuelTarget;
+LookingForDuelsAPI.SyncAll = SyncAll;
+LookingForDuelsAPI.SyncTarget = SyncTarget;
+LookingForDuelsAPI.ToggleUI = ToggleUI;
+LookingForDuelsAPI.ToggleSettingsUI = ToggleSettingsUI;
 
 -- Hooks
 local originalStartDuel = StartDuel;
@@ -343,8 +405,8 @@ events.DUEL_REQUESTED = function(playerName)
 	if not playerName or playerName == "" then playerName = UnitName("target"); end
 	if playerName then
 		LookingForDuelsData.CurrentOpponentName = select(1, UnitName(playerName)) or playerName;
-		StopCoroutine("ProcessDuel");
-		StartCoroutine("ProcessDuel", ProcessDuel);
+		StopCoroutine(LookingForDuelsData.CurrentOpponentName);
+		StartCoroutine(LookingForDuelsData.CurrentOpponentName, ProcessDuel);
 	end
 end
 events.DUEL_INBOUNDS = function()
@@ -363,7 +425,33 @@ events.DUEL_OUTOFBOUNDS = function()
 	end
 end
 events.DUEL_FINISHED = function()
-	LookingForDuelsData.IsDueling = nil;
-	LookingForDuelsData.IsPending = nil;
 	LookingForDuelsData.ClearData = true;
+end
+
+-- Slash Commands
+SLASH_LFDUELS1 = "/lfd";
+SLASH_LFDUELS2 = "/lfduel";
+SLASH_LFDUELS3 = "/lfduels";
+SLASH_LFDUELS4 = "/lookingforduel";
+SLASH_LFDUELS5 = "/lookingforduels";
+SlashCmdList["LFDUELS"] = function(cmd)
+	if cmd and cmd ~= "" then
+		if cmd == "start" or cmd == "duel" then
+			DuelTarget();
+			return 0;
+		elseif cmd == "sync" or cmd == "u" then
+			SyncTarget();
+			return 0;
+		elseif cmd == "syncall" or cmd == "sync all" or cmd == "all" then
+			SyncAll();
+			return 0;
+		elseif cmd == "clean" or cmd == "clear" then
+			LookingForDuelsData.ClearData = true;
+			return 0;
+		elseif cmd == "settings" then
+			ToggleSettingsUI();
+			return 0;
+		end
+	end
+	ToggleUI();
 end

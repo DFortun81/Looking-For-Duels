@@ -1,0 +1,23 @@
+<Bindings>
+	<Binding name="LFDUELS_DUELTARGET" header="LFDUELS" category="ADDONS">
+		LookingForDuelsAPI:DuelTarget();
+	</Binding>
+	<Binding name="LFDUELS_DUEL_ACCEPT" category="ADDONS">
+		LookingForDuelsAPI:ConfirmDuel();
+	</Binding>
+	<Binding name="LFDUELS_DUEL_DECLINE" category="ADDONS">
+		LookingForDuelsAPI:DeclineDuel();
+	</Binding>
+	<Binding name="LFDUELS_SYNC_TARGET" category="ADDONS">
+		LookingForDuelsAPI:SyncTarget();
+	</Binding>
+	<Binding name="LFDUELS_SYNC_ALL" category="ADDONS">
+		LookingForDuelsAPI:SyncAll();
+	</Binding>
+	<Binding name="LFDUELS_TOGGLE_SETTINGS_UI" category="ADDONS">
+		LookingForDuelsAPI:ToggleSettingsUI();
+	</Binding>
+	<Binding name="LFDUELS_TOGGLE_UI" category="ADDONS">
+		LookingForDuelsAPI:ToggleUI();
+	</Binding>
+</Bindings>
