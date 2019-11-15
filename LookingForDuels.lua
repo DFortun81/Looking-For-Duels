@@ -99,6 +99,89 @@ end
 local CachedDuels, WinsByGUID, LossesByGUID = {}, {}, {};
 local RealmName, RealmGUIDs, PlayerData, PlayerGUID = GetRealmName();
 
+-- Color Lib
+local CS = CreateFrame("ColorSelect", nil, app._);
+local function Colorize(str, color)
+	return "|c" .. color .. str .. "|r";
+end
+local function HexToARGB(hex)
+	return tonumber("0x"..hex:sub(1,2)), tonumber("0x"..hex:sub(3,4)), tonumber("0x"..hex:sub(5,6)), tonumber("0x"..hex:sub(7,8));
+end
+local function HexToRGB(hex)
+	return tonumber("0x"..hex:sub(1,2)), tonumber("0x"..hex:sub(3,4)), tonumber("0x"..hex:sub(5,6));
+end
+local function RGBToHex(r, g, b)
+	return string.format("ff%02x%02x%02x", 
+		r <= 255 and r >= 0 and r or 0, 
+		g <= 255 and g >= 0 and g or 0, 
+		b <= 255 and b >= 0 and b or 0);
+end
+local function ConvertColorRgbToHsv(r, g, b)
+  CS:SetColorRGB(r, g, b);
+  local h,s,v = CS:GetColorHSV()
+  return {h=h,s=s,v=v}
+end
+local red, green = ConvertColorRgbToHsv(1,0,0), ConvertColorRgbToHsv(0,1,0);
+local progress_colors = setmetatable({[1] = "ff15abff"}, {
+	__index = function(t, p)
+		local h;
+		p = tonumber(p);
+		if abs(red.h - green.h) > 180 then
+			local angle = (360 - abs(red.h - green.h)) * p;
+			if red.h < green.h then
+				h = floor(red.h - angle);
+				if h < 0 then h = 360 + h end
+			else
+				h = floor(red.h + angle);
+				if h > 360 then h = h - 360 end
+			end
+		else
+			h = floor(red.h-(red.h-green.h)*p)
+		end
+		CS:SetColorHSV(h, red.s-(red.s-green.s)*p, red.v-(red.v-green.v)*p);
+		local r,g,b = CS:GetColorRGB();
+		local color = RGBToHex(r * 255, g * 255, b * 255);
+		rawset(t, p, color);
+		return color;
+	end
+});
+local function GetNumberWithZeros(number, desiredLength)
+	if desiredLength > 0 then
+		local str = tostring(number);
+		local length = string.len(str);
+		local pos = string.find(str,"[.]");
+		if not pos then
+			str = str .. ".";
+			for i=desiredLength,1,-1 do
+				str = str .. "0";
+			end
+		else
+			local totalExtra = desiredLength - (length - pos);
+			for i=totalExtra,1,-1 do
+				str = str .. "0";
+			end
+			if totalExtra < 1 then
+				str = string.sub(str, 1, pos + desiredLength);
+			end
+		end
+		return str;
+	else
+		return tostring(floor(number));
+	end
+end
+local function GetProgressText(progress, total)
+	return tostring(progress) .. " / " .. tostring(total);
+end
+local function GetProgressColor(p)
+	return progress_colors[p];
+end
+local function GetProgressColorText(progress, total)
+	if total and total > 0 then
+		local percent = progress / total;
+		return "|c" .. GetProgressColor(percent) .. GetProgressText(progress, total) .. " (" .. GetNumberWithZeros(percent * 100, 2) .. "%) |r";
+	end
+end
+
 -- Class Prototypes
 local DefaultSettings = { __index = {
 	BattleAudioEnabled = true,
@@ -245,6 +328,30 @@ local function SendGroupAddonMessage(msg)
 end
 local function SendTargetAddonMessage(msg, target)
 	C_ChatInfo.SendAddonMessage("LFDUELS", msg, "WHISPER", target or UnitName("target"));
+end
+local function AttachTooltip(self)
+	if not self.LFDUELSPROCESSING and not InCombatLockdown() then
+		self.LFDUELSPROCESSING = true;
+		local numLines = self:NumLines();
+		if numLines > 0 then
+			-- Does the tooltip have a target?
+			local target = select(2, self:GetUnit());
+			if target and UnitIsPlayer(target) then
+				-- Yes.
+				target = UnitGUID(target);
+				if target then
+					local wins, losses = WinsByGUID[target] or 0, LossesByGUID[target] or 0;
+					local total = wins + losses;
+					if total > 0 then
+						self:AddDoubleLine(L.TITLE, GetProgressColorText(wins, total));
+					end
+				end
+			end
+		end
+	end
+end
+local function ClearTooltip(self)
+	self.LFDUELSPROCESSING = nil;
 end
 function CacheDuel(duelString, newData)
 	if not CachedDuels[duelString] then
@@ -562,6 +669,10 @@ end
 events.DUEL_FINISHED = function()
 	LookingForDuelsData.ClearData = true;
 end
+
+-- Tooltips
+GameTooltip:HookScript("OnTooltipSetUnit", AttachTooltip);
+GameTooltip:HookScript("OnTooltipCleared", ClearTooltip);
 
 -- Slash Commands
 SLASH_LFDUELS1 = "/lfd";
