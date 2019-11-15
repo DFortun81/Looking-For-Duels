@@ -12,6 +12,7 @@ _:SetScript("OnEvent", function(self, e, ...) (rawget(events, e) or print)(...);
 _:SetPoint("BOTTOMLEFT", UIParent, "TOPLEFT", 0, 0);
 _:RegisterEvent("VARIABLES_LOADED");
 _:RegisterEvent("DUEL_REQUESTED");
+_:RegisterEvent("CHAT_MSG_ADDON");
 _:SetSize(1, 1);
 _:Show();
 
@@ -233,7 +234,19 @@ function PlayVictorySound()
 		PlayRandomSound(LookingForDuelsData.VictoryAudioOptions);
 	end
 end
-function CacheDuel(duelString)
+local function SendGroupAddonMessage(msg)
+	if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) and IsInInstance() then
+		C_ChatInfo.SendAddonMessage("LFDUELS", msg, "INSTANCE_CHAT")
+	elseif IsInRaid() then
+		C_ChatInfo.SendAddonMessage("LFDUELS", msg, "RAID")
+	elseif IsInGroup(LE_PARTY_CATEGORY_HOME) then
+		C_ChatInfo.SendAddonMessage("LFDUELS", msg, "PARTY")
+	end
+end
+local function SendTargetAddonMessage(msg, target)
+	C_ChatInfo.SendAddonMessage("LFDUELS", msg, "WHISPER", target or UnitName("target"));
+end
+function CacheDuel(duelString, newData)
 	if not CachedDuels[duelString] then
 		local timestamp, winner, loser, out = strsplit("_", duelString);
 		-- print(timestamp .. " : " .. winner .. " : " .. loser .. " : " .. (out and 1 or 0));
@@ -246,7 +259,10 @@ function CacheDuel(duelString)
 		CachedDuels[duelString] = duel;
 		WinsByGUID[winner] = (WinsByGUID[winner] or 0) + 1;
 		LossesByGUID[loser] = (LossesByGUID[loser] or 0) + 1;
-		-- print(duel.text);
+		if newData then
+			SendGroupAddonMessage("!\tduels\t" .. duelString);
+			print(duel.text);
+		end
 	end
 end
 function CleanUpDuel()
@@ -371,16 +387,16 @@ function ProcessDuel()
 	-- Record the Duel
 	if LookingForDuelsData.OutOfBounds then identifier = identifier .. "_OUT"; end
 	table.insert(LookingForDuelsData.Duels, identifier);
-	CacheDuel(identifier);
+	CacheDuel(identifier, true);
 	
 	-- The Duel has Ended, let's cut the music and clean up the persistent data.
 	CleanUpDuel();
 end
 function SyncAll()
-	Print("Placeholder function for SyncAll.");
+	SendGroupAddonMessage("?\tsync");
 end
 function SyncTarget()
-	Print("Placeholder function for SyncTarget");
+	SendTargetAddonMessage("?\tsync");
 end
 function ToggleUI()
 	Print("Placeholder function for ToggleUI.");
@@ -445,12 +461,53 @@ events.VARIABLES_LOADED = function()
 	PlayerData, PlayerGUID = CreateOpponent("player"), UnitGUID("player");
 	rawset(RealmGUIDs, PlayerData.name, PlayerGUID);
 	rawset(LookingForDuelsData.CachedCharacterData, PlayerGUID, PlayerData);
+	C_ChatInfo.RegisterAddonMessagePrefix("LFDUELS");
 	
 	-- If a Duel was previously active, let's check to see if you're still dueling.
 	if LookingForDuelsData.CurrentOpponentName then
 		events.DUEL_REQUESTED(LookingForDuelsData.CurrentOpponentName);
 	else
 		CleanUpDuel();
+	end
+end
+events.CHAT_MSG_ADDON = function(prefix, text, channel, sender, target, zoneChannelID, localID, name, instanceID)
+	if prefix == "LFDUELS" then
+		-- print(prefix, text, channel, sender, target, zoneChannelID, localID, name, instanceID)
+		local args = { strsplit("\t", text) };
+		local cmd = args[1];
+		if cmd then
+			-- Command to Request Data
+			if cmd == "!" then	-- Command to Receive Data
+				if args[2] == "duels" then
+					for i,duelString in ipairs({ strsplit(":", args[3]) }) do
+						CacheDuel(duelString);
+					end
+				end
+			elseif cmd == "?" then
+				if args[2] == "sync" then
+					local length, totallength, msg = 0, 0;
+					for i,duelString in ipairs(LookingForDuelsData.Duels) do
+						length = string.len(duelString);
+						if totallength + length >= 236 then
+							SendTargetAddonMessage("!\tduels\t" .. msg, sender);
+							totallength = 0;
+							msg = nil;
+						elseif msg then
+							msg = msg .. ":" .. duelString;
+							totallength = totallength + length + 1;
+						else
+							msg = duelString;
+							totallength = length;
+						end
+					end
+					if totallength + length >= 236 then
+						SendTargetAddonMessage("!\tduels\t" .. msg, sender);
+						totallength = 0;
+						msg = nil;
+					end
+				end
+			end
+		end
 	end
 end
 events.CHAT_MSG_SYSTEM = function(msg, ...)
