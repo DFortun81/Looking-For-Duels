@@ -94,6 +94,10 @@ local function StopCoroutine(name)
 	end
 end
 
+-- Temporary Variables
+local CachedDuels, WinsByGUID, LossesByGUID = {}, {}, {};
+local RealmName, RealmGUIDs, PlayerData, PlayerGUID = GetRealmName();
+
 -- Class Prototypes
 local DefaultSettings = { __index = {
 	BattleAudioEnabled = true,
@@ -114,17 +118,32 @@ local DefaultSettings = { __index = {
 		"victory1.ogg"
 	},
 }};
+local DuelClass = { __index = function(t, key)
+	if key == "text" then
+		local winner, loser = t.winner, t.loser;
+		if winner and loser then
+			return winner.text .. " vs. " .. loser.text .. " (" .. t.datetime .. ")";
+		end
+		return RETRIEVING_DATA;
+	elseif key == "winner" then
+		return rawget(LookingForDuelsData.CachedCharacterData, t.winnerGUID);
+	elseif key == "loser" then
+		return rawget(LookingForDuelsData.CachedCharacterData, t.loserGUID);
+	elseif key == "winnerGUID" then
+		return "???";
+	elseif key == "loserGUID" then
+		return "???";
+	elseif key == "outofrange" then
+		return false;
+	elseif key == "timestamp" then
+		return 0;
+	elseif key == "datetime" then
+		return date("%c", t.timestamp);
+	end
+end};
 local OpponentClass = { __index = function(t, key)
 	if key == "name" then
-		local guid = rawget(t, "guid");
-		if guid then
-			for name,g in pairs(LookingForDuelsData.CachedCharacterGUIDS) do
-				if guid == g then
-					rawset(t, key, name);
-					return name;
-				end
-			end
-		end
+		return "???";
 	elseif key == "lvl" then
 		local name = t.name;
 		if name then
@@ -163,12 +182,23 @@ local OpponentClass = { __index = function(t, key)
 				return faction;
 			end
 		end
+	elseif key == "realm" then
+		return RealmName;
 	elseif key == "text" then
 		local classInfo = C_CreatureInfo.GetClassInfo(t.class);
 		local raceInfo = C_CreatureInfo.GetRaceInfo(t.race);
 		return "|c" .. (RAID_CLASS_COLORS[classInfo.classFile].colorStr or "ff1eff00") .. t.name .. " (Level " .. (t.lvl or "??") .. " " .. (raceInfo.raceName or "??").. " " .. (classInfo.className or "??") .. ")|r";
 	end
 end};
+function CreateOpponent(target)
+	return setmetatable({
+		["name"] = UnitName(target),
+		["lvl"] = UnitLevel(target),
+		["class"] = select(3, UnitClass(target)),
+		["race"] = select(3, UnitRace(target)),
+		["faction"] = UnitFactionGroup(target),
+	}, OpponentClass);
+end
 
 -- Functionality
 function Print(...)
@@ -201,6 +231,22 @@ end
 function PlayVictorySound()
 	if LookingForDuelsData.VictoryAudioEnabled then
 		PlayRandomSound(LookingForDuelsData.VictoryAudioOptions);
+	end
+end
+function CacheDuel(duelString)
+	if not CachedDuels[duelString] then
+		local timestamp, winner, loser, out = strsplit("_", duelString);
+		-- print(timestamp .. " : " .. winner .. " : " .. loser .. " : " .. (out and 1 or 0));
+		local duel = setmetatable({
+			["winnerGUID"] = winner,
+			["loserGUID"] = loser,
+			["timestamp"] = timestamp,
+			["outofrange"] = out and true or false
+		}, DuelClass);
+		CachedDuels[duelString] = duel;
+		WinsByGUID[winner] = (WinsByGUID[winner] or 0) + 1;
+		LossesByGUID[loser] = (LossesByGUID[loser] or 0) + 1;
+		-- print(duel.text);
 	end
 end
 function CleanUpDuel()
@@ -237,8 +283,8 @@ function DuelTarget()
 end
 function ProcessDuel()
 	-- Acquire the GUID of the Opponent. [Global Persistence]
-	local CurrentOpponentName, CurrentOpponent = LookingForDuelsData.CurrentOpponentName, nil;
-	local guid = rawget(LookingForDuelsData.CachedCharacterGUIDS, CurrentOpponentName);
+	local startTime, CurrentOpponentName, CurrentOpponent = time(), LookingForDuelsData.CurrentOpponentName, nil;
+	local guid = rawget(RealmGUIDs, CurrentOpponentName);
 	if guid then CurrentOpponent = rawget(LookingForDuelsData.CachedCharacterData, guid); end
 	
 	-- Scan for Target data until the player name matches the opponent.
@@ -247,13 +293,8 @@ function ProcessDuel()
 			guid = UnitGUID("target");
 			if guid then
 				-- Build a Cached Character Profile for the Target
-				CurrentOpponent = setmetatable({
-					["lvl"] = UnitLevel("target"),
-					["class"] = select(3, UnitClass("target")),
-					["race"] = select(3, UnitRace("target")),
-					["faction"] = UnitFactionGroup("target"),
-				}, OpponentClass);
-				rawset(LookingForDuelsData.CachedCharacterGUIDS, CurrentOpponentName, guid);
+				CurrentOpponent = CreateOpponent("target");
+				rawset(RealmGUIDs, CurrentOpponentName, guid);
 				rawset(LookingForDuelsData.CachedCharacterData, guid, CurrentOpponent);
 			else
 				coroutine.yield();
@@ -264,13 +305,11 @@ function ProcessDuel()
 	end
 	
 	-- Notify the Player that the Duel is Starting
-	local playerName = UnitName("player");
-	CurrentOpponent.name = CurrentOpponentName;
 	Print(CurrentOpponent.text);
-	LookingForDuelsData.WinCondition = string.format(DUEL_WINNER_KNOCKOUT, playerName, CurrentOpponentName);
-	LookingForDuelsData.WinRetreatCondition = string.format(DUEL_WINNER_RETREAT, playerName, CurrentOpponentName);
-	LookingForDuelsData.LoseCondition = string.format(DUEL_WINNER_KNOCKOUT, CurrentOpponentName, playerName);
-	LookingForDuelsData.LoseRetreatCondition = string.format(DUEL_WINNER_RETREAT, CurrentOpponentName, playerName);
+	LookingForDuelsData.WinCondition = string.format(DUEL_WINNER_KNOCKOUT, PlayerData.name, CurrentOpponentName);
+	LookingForDuelsData.WinRetreatCondition = string.format(DUEL_WINNER_RETREAT, PlayerData.name, CurrentOpponentName);
+	LookingForDuelsData.LoseCondition = string.format(DUEL_WINNER_KNOCKOUT, CurrentOpponentName, PlayerData.name);
+	LookingForDuelsData.LoseRetreatCondition = string.format(DUEL_WINNER_RETREAT, CurrentOpponentName, PlayerData.name);
 	_:RegisterEvent("CHAT_MSG_SYSTEM");
 	_:RegisterEvent("DUEL_OUTOFBOUNDS");
 	
@@ -312,14 +351,27 @@ function ProcessDuel()
 		end
 	end
 	
+	-- Calculate the best time to use for the identifier.
+	local endTime = time();
+	local modEndTime = endTime % 10;
+	
 	-- Did you Win or Lose?
+	local identifier = endTime - modEndTime + (modEndTime < 3 and -5 or 0);
+	print(startTime .. " -> " .. endTime .. " = ID# " .. identifier);
 	if LookingForDuelsData.Victory then
+		identifier = identifier .. "_" .. PlayerGUID .. "_" .. guid;
 		Print(LookingForDuelsData.OutOfBounds and "YOU WIN! (OUT OF BOUNDS)" or "YOU WIN!");
 		PlayVictorySound();
 	else
+		identifier = identifier .. "_" .. guid .. "_" .. PlayerGUID;
 		Print(LookingForDuelsData.OutOfBounds and "YOU LOSE! (OUT OF BOUNDS)" or "YOU LOSE!");
 		PlayDefeatSound();
 	end
+	
+	-- Record the Duel
+	if LookingForDuelsData.OutOfBounds then identifier = identifier .. "_OUT"; end
+	table.insert(LookingForDuelsData.Duels, identifier);
+	CacheDuel(identifier);
 	
 	-- The Duel has Ended, let's cut the music and clean up the persistent data.
 	CleanUpDuel();
@@ -366,7 +418,33 @@ events.VARIABLES_LOADED = function()
 	end
 	if not LookingForDuelsData.CachedCharacterGUIDS then
 		LookingForDuelsData.CachedCharacterGUIDS = {};
+	else
+		-- Remove all non-tables (name-guid pairs) from this dictionary
+		for name,guid in pairs(LookingForDuelsData.CachedCharacterGUIDS) do
+			if type(guid) ~= "table" then
+				LookingForDuelsData.CachedCharacterGUIDS[name] = nil;
+			end
+		end
 	end
+	if not LookingForDuelsData.Duels then
+		LookingForDuelsData.Duels = {};
+	else
+		for i,duelString in ipairs(LookingForDuelsData.Duels) do
+			CacheDuel(duelString);
+		end
+	end
+	
+	-- Create a Temporary Table for the Current Realm for faster lookups.
+	RealmGUIDs = LookingForDuelsData.CachedCharacterGUIDS[RealmName];
+	if not RealmGUIDs then
+		RealmGUIDs = {};
+		LookingForDuelsData.CachedCharacterGUIDS[RealmName] = RealmGUIDs;
+	end
+	
+	-- Create an Entry for the Player
+	PlayerData, PlayerGUID = CreateOpponent("player"), UnitGUID("player");
+	rawset(RealmGUIDs, PlayerData.name, PlayerGUID);
+	rawset(LookingForDuelsData.CachedCharacterData, PlayerGUID, PlayerData);
 	
 	-- If a Duel was previously active, let's check to see if you're still dueling.
 	if LookingForDuelsData.CurrentOpponentName then
