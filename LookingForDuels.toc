@@ -6,4 +6,8 @@
 ## SavedVariablesPerCharacter: LookingForDuelsDataPerCharacter
 ## Notes: Addon for Tracking Duels Win/Loss Ratios
 ## Version: 0.0.2
+lib\LibStub\LibStub.lua
+lib\CallbackHandler-1.0\CallbackHandler-1.0.lua
+lib\LibDataBroker-1.1\LibDataBroker-1.1.lua
+lib\LibDBIcon-1.0\lib.xml
 LookingForDuels.lua

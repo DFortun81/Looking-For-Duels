@@ -3,23 +3,14 @@
 --------------------------------------------------------------------------------
 --				  Copyright 2017-2019 Dylan Fortune (Crieve-Atiesh)           --
 --------------------------------------------------------------------------------
-local app = select(2, ...);
-LookingForDuelsAPI = app;	
-local events = {};
-app.events = events;
-local _ = CreateFrame("FRAME", nil, UIParent);
-_:SetScript("OnEvent", function(self, e, ...) (rawget(events, e) or print)(...); end);
-_:SetPoint("BOTTOMLEFT", UIParent, "TOPLEFT", 0, 0);
-_:RegisterEvent("VARIABLES_LOADED");
-_:RegisterEvent("DUEL_REQUESTED");
-_:RegisterEvent("CHAT_MSG_ADDON");
-_:SetSize(1, 1);
-_:Show();
-
 -- Localization
 local L = {
 	TITLE = "|cffb4b4ffLookingForDuels|r",
+	TITLE_NOCOLOR = "LookingForDuels",
 	PREFIX = "|cffb4b4ffLFD|r",
+	ICON = "Interface\\ICONS\\Ability_Warrior_Challange",
+	DESCRIPTION = "Tracks your Duel History and Ranking.",
+	MINIMAP_MOUSEOVER_TEXT = "Left Click to Open your Character's Duels tab.\nRight Click to Open the Settings Menu.",
 	DUEL_CURRENT_TARGET = "Duel Current Target",
 	DUEL_ACCEPT = "Accept Duel",
 	DUEL_DECLINE = "Decline Duel",
@@ -38,6 +29,137 @@ BINDING_NAME_LFDUELS_SYNC_TARGET = L.SYNC_TARGET;
 BINDING_NAME_LFDUELS_SYNC_ALL = L.SYNC_ALL;
 BINDING_NAME_LFDUELS_TOGGLE_UI = L.TOGGLE_UI;
 BINDING_NAME_LFDUELS_TOGGLE_SETTINGS_UI = L.TOGGLE_SETTINGS_UI;
+
+-- Frames
+local app = select(2, ...);
+LookingForDuelsAPI = app;
+local events = {};
+app.events = events;
+local _ = CreateFrame("FRAME", L.TITLE, UIParent);
+_:SetScript("OnEvent", function(self, e, ...) (rawget(events, e) or print)(...); end);
+_:SetPoint("BOTTOMLEFT", UIParent, "TOPLEFT", 0, 0);
+_:RegisterEvent("VARIABLES_LOADED");
+_:RegisterEvent("DUEL_REQUESTED");
+_:RegisterEvent("CHAT_MSG_ADDON");
+_:SetSize(1, 1);
+_:Show();
+
+-- The Settings Frame
+local SettingsFrame = CreateFrame("FRAME", _:GetName() .. "-SettingsFrame", UIParent );
+SettingsFrame.name = L.TITLE_NOCOLOR;
+SettingsFrame.MostRecentTab = nil;
+SettingsFrame.Tabs = {};
+SettingsFrame:SetBackdrop({
+	bgFile = "Interface/RAIDFRAME/UI-RaidFrame-GroupBg", 
+	edgeFile = "Interface/Tooltips/UI-Tooltip-Border", 
+	tile = false, edgeSize = 16, 
+	insets = { left = 4, right = 4, top = 4, bottom = 4 }
+});
+SettingsFrame:SetBackdropColor(0, 0, 0, 1);
+InterfaceOptions_AddCategory(SettingsFrame);
+SettingsFrame.CreateCheckBox = function(self, text, OnRefresh, OnClick)
+	local cb = CreateFrame("CheckButton", self:GetName() .. "-" .. text, self, "InterfaceOptionsCheckButtonTemplate");
+	table.insert(self.MostRecentTab.objects, cb);
+	cb:SetScript("OnClick", OnClick);
+	cb.OnRefresh = OnRefresh;
+	cb.Text:SetText(text);
+	return cb;
+end
+SettingsFrame.CreateTab = function(self, text)
+	local id = #self.Tabs + 1;
+	local tab = CreateFrame('Button', self:GetName() .. '-Tab' .. id, self, 'OptionsFrameTabButtonTemplate');
+	if id > 1 then tab:SetPoint("TOPLEFT", self.Tabs[id - 1], "TOPRIGHT", 0, 0); end
+	table.insert(self.Tabs, tab);
+	self.MostRecentTab = tab;
+	tab.objects = {};
+	tab:SetID(id);
+	tab:SetText(text);
+	PanelTemplates_TabResize(tab, 0);
+	tab:SetScript('OnClick', OnClickForTab);
+	return tab;
+end
+SettingsFrame.Initialize = function(self)
+	PanelTemplates_SetNumTabs(self, #self.Tabs);
+	self:Refresh();
+end
+SettingsFrame.Open = function(self)
+	-- Open the Options menu.
+	if InterfaceOptionsFrame:IsVisible() then
+		InterfaceOptionsFrame_Show();
+	else
+		InterfaceOptionsFrame_OpenToCategory(self.name);
+		InterfaceOptionsFrame_OpenToCategory(self.name);
+	end
+end
+SettingsFrame.Refresh = function(self)
+	for i,tab in ipairs(self.Tabs) do
+		if tab.OnRefresh then tab:OnRefresh(); end
+		for j,o in ipairs(tab.objects) do
+			if o.OnRefresh then o:OnRefresh(); end
+		end
+	end
+end
+
+-- Settings Top Bar
+local f = SettingsFrame:CreateTexture(nil, "ARTWORK");
+f:SetPoint("TOPLEFT", SettingsFrame, "TOPLEFT", 8, -8);
+f:SetTexture(L.ICON);
+f:SetSize(36, 36);
+f:Show();
+SettingsFrame.logo = f;
+
+f = SettingsFrame:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge");
+f:SetPoint("TOPLEFT", SettingsFrame.logo, "TOPRIGHT", 4, -4);
+f:SetJustifyH("LEFT");
+f:SetText(L.TITLE);
+f:SetScale(1.5);
+f:Show();
+SettingsFrame.title = f;
+
+f = SettingsFrame:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge");
+f:SetPoint("TOPRIGHT", SettingsFrame, "TOPRIGHT", -8, -8);
+f:SetJustifyH("RIGHT");
+f:SetText("Crieve-Atiesh\nv" .. GetAddOnMetadata("LookingForDuels", "Version"));
+f:Show();
+SettingsFrame.version = f;
+
+------------------------------------------
+-- The "General" Tab.					--
+------------------------------------------
+local line;
+(function()
+local tab = SettingsFrame:CreateTab("General");
+tab:SetPoint("TOPLEFT", SettingsFrame.logo, "BOTTOMRIGHT", 16, 0);
+local line = SettingsFrame:CreateTexture(nil, "ARTWORK");
+line:SetPoint("LEFT", SettingsFrame, "LEFT", 4, 0);
+line:SetPoint("RIGHT", SettingsFrame, "RIGHT", -4, 0);
+line:SetPoint("TOP", tab, "BOTTOM", 0, 0);
+line:SetColorTexture(1, 1, 1, 0.4);
+line:SetHeight(2);
+
+local ModeLabel = SettingsFrame:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge");
+table.insert(SettingsFrame.MostRecentTab.objects, ModeLabel);
+ModeLabel:SetPoint("TOPLEFT", line, "BOTTOMLEFT", 8, -8);
+ModeLabel:SetJustifyH("LEFT");
+ModeLabel:SetText("User Interface Settings");
+ModeLabel:Show();
+
+local ShowMinimapButtonCheckBox = SettingsFrame:CreateCheckBox("Show the Minimap Button",
+function(self)
+	self:SetChecked(LookingForDuelsData.ShowMinimapButton);
+	if LookingForDuelsData.ShowMinimapButton then
+		LibStub("LibDBIcon-1.0"):Show("LFDUELS");
+	else
+		LibStub("LibDBIcon-1.0"):Hide("LFDUELS");
+	end
+end,
+function(self)
+	LookingForDuelsData.ShowMinimapButton = self:GetChecked();
+	SettingsFrame:Refresh();
+end);
+ShowMinimapButtonCheckBox:SetATTTooltip("Enable this option if you want to see the minimap button. This button allows you to quickly access the settings or information panels.");
+ShowMinimapButtonCheckBox:SetPoint("TOPLEFT", ModeLabel, "BOTTOMLEFT", 0, -8);
+end)();
 
 -- Coroutine Helper Functions
 app.refreshing = {};
@@ -196,6 +318,7 @@ local DefaultSettings = { __index = {
 	OutOfBoundsAudioOptions = {
 		"outofbounds1.ogg"
 	},
+	ShowMinimapButton = true,
 	SoundEffectsChannel = "SFX",
 	VictoryAudioEnabled = true,
 	VictoryAudioOptions = {
@@ -404,6 +527,28 @@ function DuelTarget()
 	DeclineDuel();
 	StartDuel();
 end
+local function MinimapButtonOnClick(self, button)
+	if button == "RightButton" then
+		--Open the Settings UI
+		SettingsFrame:Open();
+	else
+		-- Left Button
+		--Open the Main UI
+	end
+end
+local function MinimapButtonOnEnter(self)
+	local wins, losses = WinsByGUID[PlayerGUID] or 0, LossesByGUID[PlayerGUID] or 0;
+	local total = wins + losses;
+	GameTooltip:SetOwner(self, "ANCHOR_LEFT");
+	GameTooltip:ClearLines();
+	GameTooltip:AddDoubleLine(L.TITLE, total == 0 and "No duels found." or GetProgressColorText(wins, total));
+	GameTooltip:AddLine(L.DESCRIPTION, 0.4, 0.8, 1, 1);
+	GameTooltip:AddLine(L.MINIMAP_MOUSEOVER_TEXT, 1, 1, 1);
+	GameTooltip:Show();
+end
+local function MinimapButtonOnLeave()
+	GameTooltip:Hide();
+end
 function ProcessDuel()
 	-- Acquire the GUID of the Opponent. [Global Persistence]
 	local startTime, CurrentOpponentName, CurrentOpponent = time(), LookingForDuelsData.CurrentOpponentName, nil;
@@ -576,6 +721,21 @@ events.VARIABLES_LOADED = function()
 	else
 		CleanUpDuel();
 	end
+	
+	-- Create the Minimap Icon
+	LibStub("LibDBIcon-1.0"):Register("LFDUELS", 
+	LibStub:GetLibrary("LibDataBroker-1.1"):NewDataObject(L.TITLE, {
+		type = "launcher",
+		icon = L.ICON,
+		OnClick = MinimapButtonOnClick,
+		OnEnter = MinimapButtonOnEnter,
+		OnLeave = MinimapButtonOnLeave,
+	}), setmetatable({}, { __index = function(t, key)
+		if key == "hide" then
+			return not LookingForDuelsData.ShowMinimapButton;
+		end
+	end}));
+	SettingsFrame:Initialize();
 end
 events.CHAT_MSG_ADDON = function(prefix, text, channel, sender, target, zoneChannelID, localID, name, instanceID)
 	if prefix == "LFDUELS" then
