@@ -3,7 +3,9 @@
 --------------------------------------------------------------------------------
 --				  Copyright 2017-2019 Dylan Fortune (Crieve-Atiesh)           --
 --------------------------------------------------------------------------------
--- Localization
+-- Localization for English (US & GB) Clients.
+local ADDON_PATH = "Interface\\Addons\\LookingForDuels";
+local locale = GetLocale();
 local L = {
 	TITLE = "|cffb4b4ffLookingForDuels|r",
 	TITLE_NOCOLOR = "LookingForDuels",
@@ -27,7 +29,170 @@ local L = {
 	YOU_WIN = "YOU WIN!",
 	YOU_WIN_OUT = "YOU WIN! (OUT OF BOUNDS)",
 };
-local ADDON_PATH = "Interface\\Addons\\LookingForDuels";
+--[[ [ TEMPLATE ]
+L.DESCRIPTION = "Tracks your Duel History and Ranking.";
+L.MINIMAP_MOUSEOVER_TEXT = "Left Click to Open your Character's Duels tab.\nRight Click to Open the Settings Menu.";
+L.DUEL_CURRENT_TARGET = "Duel Current Target";
+L.DUEL_ACCEPT = "Accept Duel";
+L.DUEL_DECLINE = "Decline Duel";
+L.SHOW_MINIMAP_BUTTON = "Show the Minimap Button";
+L.SYNC_TARGET = "Synchronize Target";
+L.SYNC_ALL = "Synchronize All Data";
+L.TAB_GENERAL = "General";
+L.TOGGLE_UI = "Toggle UI";
+L.TOGGLE_SETTINGS_UI = "Toggle Settings UI";
+L.TOOLTIP_SHOW_MINIMAP_BUTTON = "Enable this option if you want to see the minimap button. This button allows you to quickly access the settings or information panels.";
+L.USER_INTERFACE_SETTINGS = "User Interface Settings";
+L.YOU_LOSE = "YOU LOSE!";
+L.YOU_LOSE_OUT = "YOU LOSE! (OUT OF BOUNDS)";
+L.YOU_WIN = "YOU WIN!";
+L.YOU_WIN_OUT = "YOU WIN! (OUT OF BOUNDS)";
+]]
+if locale == "esES" or locale == "esLA" or locale == "esMX" then	-- Localization for Spanish (Spain), Spanish (Latin America), and Spanish (Mexico) Clients.
+	L.DESCRIPTION = "Rastrea tu historial de duelos y clasificación.";
+	L.MINIMAP_MOUSEOVER_TEXT = "Haz clic izquierdo para abrir la pestaña Duelos de tu personaje.\nHaga clic derecho para abrir el menú de configuración.";
+	L.DUEL_CURRENT_TARGET = "Duelo Objetivo Actual";
+	L.DUEL_ACCEPT = "Aceptar Duelo";
+	L.DUEL_DECLINE = "Decline Duel";
+	L.SHOW_MINIMAP_BUTTON = "Mostrar el Botón Minimapa";
+	L.SYNC_TARGET = "Sincronizar Objetivo";
+	L.SYNC_ALL = "Sincronizar Todos Los Datos";
+	L.TAB_GENERAL = "General";
+	L.TOGGLE_UI = "Palanca UI";
+	L.TOGGLE_SETTINGS_UI = "Palanca Configuraciones UI";
+	L.TOOLTIP_SHOW_MINIMAP_BUTTON = "Active esta opción si desea ver el botón de minimapa. Este botón le permite acceder rápidamente a la configuración o los paneles de información.";
+	L.USER_INTERFACE_SETTINGS = "Configuraciones de Interfaz de Usuario";
+	L.YOU_LOSE = "¡TÚ PIERDES!";
+	L.YOU_LOSE_OUT = "¡TÚ PIERDES! (FUERA DE LOS LÍMITES)";
+	L.YOU_WIN = "¡TÚ GANAS!";
+	L.YOU_WIN_OUT = "¡TÚ GANAS! (FUERA DE LOS LÍMITES)";
+elseif locale == "deDE" then	-- Localization for German Clients.
+	L.DESCRIPTION = "Verfolge deinen Duellverlauf und dein Ranking.";
+	L.MINIMAP_MOUSEOVER_TEXT = "Klicken Sie mit der linken Maustaste, um die Registerkarte \"Duelle\" Ihres Charakters zu öffnen.\nKlicken Sie mit der rechten Maustaste, um das Einstellungsmenü zu öffnen.";
+	L.DUEL_CURRENT_TARGET = "Aktuelles Ziel Duellieren";
+	L.DUEL_ACCEPT = "Nimm das Duell an";
+	L.DUEL_DECLINE = "Duell Ablehnen";
+	L.SHOW_MINIMAP_BUTTON = "Zeigen Sie die Minikartenschaltfläche an";
+	L.SYNC_TARGET = "Ziel Synchronisieren";
+	L.SYNC_ALL = "Alle Daten Synchronisieren";
+	L.TAB_GENERAL = "Allgemeine";
+	L.TOGGLE_UI = "UI Umschalten";
+	L.TOGGLE_SETTINGS_UI = "Einstellungen UI Umschalten";
+	L.TOOLTIP_SHOW_MINIMAP_BUTTON = "Aktivieren Sie diese Option, wenn Sie die Minikartenschaltfläche sehen möchten. Mit dieser Schaltfläche können Sie schnell auf die Einstellungen oder Informationstafeln zugreifen.";
+	L.USER_INTERFACE_SETTINGS = "Einstellungen der Benutzeroberfläche";
+	L.YOU_LOSE = "DU VERLIERST!";
+	L.YOU_LOSE_OUT = "DU VERLIERST! (AUSSERHALB DER GRENZEN)";
+	L.YOU_WIN = "DU GEWINNST!";
+	L.YOU_WIN_OUT = "DU GEWINNST! (AUSSERHALB DER GRENZEN)";
+elseif locale == "frFR" then	-- Localization for French Clients.
+	L.DESCRIPTION = "Suit votre historique et votre classement de duel.";
+	L.MINIMAP_MOUSEOVER_TEXT = "Clic gauche pour ouvrir l'onglet des duels de votre personnage.\nClic droit pour ouvrir le menu des paramètres.";
+	L.DUEL_CURRENT_TARGET = "Cible Actuelle de Duel";
+	L.DUEL_ACCEPT = "Accepter Duel";
+	L.DUEL_DECLINE = "Déclin Duel";
+	L.SHOW_MINIMAP_BUTTON = "Afficher le Bouton de la Mini-Carte";
+	L.SYNC_TARGET = "Synchroniser la Cible";
+	L.SYNC_ALL = "Synchroniser Toutes les Données";
+	L.TAB_GENERAL = "Généraux";
+	L.TOGGLE_UI = "Basculer UI";
+	L.TOGGLE_SETTINGS_UI = "Basculer UI des Paramètres";
+	L.TOOLTIP_SHOW_MINIMAP_BUTTON = "Activez cette option si vous souhaitez voir le bouton de la carte minimale. Ce bouton vous permet d'accéder rapidement aux paramètres ou aux panneaux d'information.";
+	L.USER_INTERFACE_SETTINGS = "Paramètres de L'Interface Utilisateur";
+	L.YOU_LOSE = "TU AS PERDU!";
+	L.YOU_LOSE_OUT = "TU AS PERDU! (HORS LIMITES)";
+	L.YOU_WIN = "VOUS GAGNEZ!";
+	L.YOU_WIN_OUT = "VOUS GAGNEZ! (HORS LIMITES)";
+elseif locale == "ptBR" then	-- Localization for Portuguese (Brazil) Clients.
+	L.DESCRIPTION = "Rastreia sua história e ranking de duelos.";
+	L.MINIMAP_MOUSEOVER_TEXT = "Clique esquerdo para abrir a guia Duels do seu personagem.\nClique com o botão direito do mouse para abrir o menu Configurações.";
+	L.DUEL_CURRENT_TARGET = "Alvo Atual do Duelo";
+	L.DUEL_ACCEPT = "Aceitar Duelo";
+	L.DUEL_DECLINE = "Recusar Duelo";
+	L.SHOW_MINIMAP_BUTTON = "Mostrar o Botão Minimapa";
+	L.SYNC_TARGET = "Sincronizar Destino";
+	L.SYNC_ALL = "Sincronizar Todos os Dados";
+	L.TAB_GENERAL = "Gerais";
+	L.TOGGLE_UI = "Alternar UI";
+	L.TOGGLE_SETTINGS_UI = "Alternar Configurações UI";
+	L.TOOLTIP_SHOW_MINIMAP_BUTTON = "Habilite esta opção se desejar ver o botão minimapa. Este botão permite acessar rapidamente as configurações ou os painéis de informações.";
+	L.USER_INTERFACE_SETTINGS = "Configurações da Interface do Usuário";
+	L.YOU_LOSE = "VOCÊ PERDEU!";
+	L.YOU_LOSE_OUT = "VOCÊ PERDEU! (FORA DOS LIMITES)";
+	L.YOU_WIN = "VOCÊ GANHA!";
+	L.YOU_WIN_OUT = "VOCÊ GANHA! (FORA DOS LIMITES)";
+elseif locale == "ruRU" then	-- Localization for Russian Clients.
+	L.DESCRIPTION = "Отслеживает историю ваших дуэлей и рейтинг.";
+	L.MINIMAP_MOUSEOVER_TEXT = "Щелкните левой кнопкой мыши, чтобы открыть вкладку Дуэли вашего персонажа.\nЩелкните правой кнопкой мыши, чтобы открыть меню настроек.";
+	L.DUEL_CURRENT_TARGET = "Цель поединка";
+	L.DUEL_ACCEPT = "Принять Дуэль";
+	L.DUEL_DECLINE = "Отклонить поединок";
+	L.SHOW_MINIMAP_BUTTON = "Показать кнопку миникарты";
+	L.SYNC_TARGET = "Синхронизировать цель";
+	L.SYNC_ALL = "Синхронизировать все данные";
+	L.TAB_GENERAL = "общие";
+	L.TOGGLE_UI = "Переключить интерфейс";
+	L.TOGGLE_SETTINGS_UI = "Переключить настройки интерфейса";
+	L.TOOLTIP_SHOW_MINIMAP_BUTTON = "Включите эту опцию, если вы хотите увидеть кнопку мини-карты. Эта кнопка позволяет быстро получить доступ к настройкам или информационным панелям.";
+	L.USER_INTERFACE_SETTINGS = "Настройки интерфейса пользователя";
+	L.YOU_LOSE = "ТЫ ПРОИГРАЛ!";
+	L.YOU_LOSE_OUT = "ТЫ ПРОИГРАЛ! (ЗА ГРАНИЦАМИ)";
+	L.YOU_WIN = "ТЫ ПОБЕДИЛ!";
+	L.YOU_WIN_OUT = "ТЫ ПОБЕДИЛ! (ЗА ГРАНИЦАМИ)";
+elseif locale == "koKR" then	-- Localization for Korean Clients.
+	L.DESCRIPTION = "결투 기록 및 순위를 추적합니다.";
+	L.MINIMAP_MOUSEOVER_TEXT = "왼쪽 클릭하여 캐릭터의 결투 탭을 엽니 다.\n마우스 오른쪽 버튼을 클릭하여 설정 메뉴를 엽니 다.";
+	L.DUEL_CURRENT_TARGET = "결투 현재 대상";
+	L.DUEL_ACCEPT = "결투 수락";
+	L.DUEL_DECLINE = "결투 거부";
+	L.SHOW_MINIMAP_BUTTON = "미니 맵 버튼 표시";
+	L.SYNC_TARGET = "대상 동기화";
+	L.SYNC_ALL = "모든 데이터 동기화";
+	L.TAB_GENERAL = "일반";
+	L.TOGGLE_UI = "UI 전환";
+	L.TOGGLE_SETTINGS_UI = "설정 UI 전환";
+	L.TOOLTIP_SHOW_MINIMAP_BUTTON = "미니 맵 단추를 보려면이 옵션을 활성화하십시오. 이 버튼을 사용하면 설정 또는 정보 패널에 빠르게 액세스 할 수 있습니다.";
+	L.USER_INTERFACE_SETTINGS = "사용자 인터페이스 설정";
+	L.YOU_LOSE = "당신이 졌어요!";
+	L.YOU_LOSE_OUT = "당신이 졌어요! (출입 금지 구역의)";
+	L.YOU_WIN = "네가 이겼다!";
+	L.YOU_WIN_OUT = "네가 이겼다! (출입 금지 구역의)";
+elseif locale == "zhCN" then	-- Localization for Chinese (Simplified, PRC) Clients.
+	L.DESCRIPTION = "追踪您的决斗历史和排名。";
+	L.MINIMAP_MOUSEOVER_TEXT = "左键单击以打开角色的决斗选项卡。\n右键单击以打开设置菜单。";
+	L.DUEL_CURRENT_TARGET = "决斗当前目标";
+	L.DUEL_ACCEPT = "接受决斗";
+	L.DUEL_DECLINE = "拒绝决斗";
+	L.SHOW_MINIMAP_BUTTON = "显示小地图按钮";
+	L.SYNC_TARGET = "同步目标";
+	L.SYNC_ALL = "同步所有数据";
+	L.TAB_GENERAL = "通用设置";
+	L.TOGGLE_UI = "切换用户界面";
+	L.TOGGLE_SETTINGS_UI = "切换设置用户界面";
+	L.TOOLTIP_SHOW_MINIMAP_BUTTON = "如果要查看小地图按钮，请启用此选项。使用此按钮可以快速访问设置或信息面板。";
+	L.USER_INTERFACE_SETTINGS = "用户界面设置";
+	L.YOU_LOSE = "你输了！";
+	L.YOU_LOSE_OUT = "你输了！ （超出界限）";
+	L.YOU_WIN = "你赢了！";
+	L.YOU_WIN_OUT = "你赢了！ （超出界限）";
+elseif locale == "zhTW" then	-- Localization for Chinese (Traditional, Taiwan) Clients.
+	L.DESCRIPTION = "追踪您的決鬥歷史和排名。";
+	L.MINIMAP_MOUSEOVER_TEXT = "左鍵單擊以打開角色的決鬥選項卡。\n右鍵單擊以打開設置菜單。";
+	L.DUEL_CURRENT_TARGET = "決鬥當前目標";
+	L.DUEL_ACCEPT = "接受決鬥";
+	L.DUEL_DECLINE = "拒絕決鬥";
+	L.SHOW_MINIMAP_BUTTON = "顯示小地圖按鈕";
+	L.SYNC_TARGET = "同步目標";
+	L.SYNC_ALL = "同步所有數據";
+	L.TAB_GENERAL = "通用設置";
+	L.TOGGLE_UI = "切換用戶界面";
+	L.TOGGLE_SETTINGS_UI = "切換設置用戶界面";
+	L.TOOLTIP_SHOW_MINIMAP_BUTTON = "如果要查看小地圖按鈕，請啟用此選項。使用此按鈕可以快速訪問設置或信息面板。";
+	L.USER_INTERFACE_SETTINGS = "用戶界面設置";
+	L.YOU_LOSE = "你輸了！";
+	L.YOU_LOSE_OUT = "你輸了！ （超出界限）";
+	L.YOU_WIN = "你贏了！";
+	L.YOU_WIN_OUT = "你贏了！ （超出界限）";
+end
 
 -- Bindings
 BINDING_HEADER_LFDUELS = L.TITLE;
