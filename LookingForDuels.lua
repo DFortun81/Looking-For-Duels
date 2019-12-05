@@ -14,11 +14,20 @@ local L = {
 	DUEL_CURRENT_TARGET = "Duel Current Target",
 	DUEL_ACCEPT = "Accept Duel",
 	DUEL_DECLINE = "Decline Duel",
+	SHOW_MINIMAP_BUTTON = "Show the Minimap Button",
 	SYNC_TARGET = "Synchronize Target",
 	SYNC_ALL = "Synchronize All Data",
+	TAB_GENERAL = "General",
 	TOGGLE_UI = "Toggle UI",
 	TOGGLE_SETTINGS_UI = "Toggle Settings UI",
+	TOOLTIP_SHOW_MINIMAP_BUTTON = "Enable this option if you want to see the minimap button. This button allows you to quickly access the settings or information panels.",
+	USER_INTERFACE_SETTINGS = "User Interface Settings",
+	YOU_LOSE = "YOU LOSE!",
+	YOU_LOSE_OUT = "YOU LOSE! (OUT OF BOUNDS)",
+	YOU_WIN = "YOU WIN!",
+	YOU_WIN_OUT = "YOU WIN! (OUT OF BOUNDS)",
 };
+local ADDON_PATH = "Interface\\Addons\\LookingForDuels";
 
 -- Bindings
 BINDING_HEADER_LFDUELS = L.TITLE;
@@ -128,7 +137,7 @@ SettingsFrame.version = f;
 ------------------------------------------
 local line;
 (function()
-local tab = SettingsFrame:CreateTab("General");
+local tab = SettingsFrame:CreateTab(L.TAB_GENERAL);
 tab:SetPoint("TOPLEFT", SettingsFrame.logo, "BOTTOMRIGHT", 16, 0);
 local line = SettingsFrame:CreateTexture(nil, "ARTWORK");
 line:SetPoint("LEFT", SettingsFrame, "LEFT", 4, 0);
@@ -141,10 +150,10 @@ local ModeLabel = SettingsFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal
 table.insert(SettingsFrame.MostRecentTab.objects, ModeLabel);
 ModeLabel:SetPoint("TOPLEFT", line, "BOTTOMLEFT", 8, -8);
 ModeLabel:SetJustifyH("LEFT");
-ModeLabel:SetText("User Interface Settings");
+ModeLabel:SetText(L.USER_INTERFACE_SETTINGS);
 ModeLabel:Show();
 
-local ShowMinimapButtonCheckBox = SettingsFrame:CreateCheckBox("Show the Minimap Button",
+local ShowMinimapButtonCheckBox = SettingsFrame:CreateCheckBox(L.SHOW_MINIMAP_BUTTON,
 function(self)
 	self:SetChecked(LookingForDuelsData.ShowMinimapButton);
 	if LookingForDuelsData.ShowMinimapButton then
@@ -157,7 +166,7 @@ function(self)
 	LookingForDuelsData.ShowMinimapButton = self:GetChecked();
 	SettingsFrame:Refresh();
 end);
-ShowMinimapButtonCheckBox:SetATTTooltip("Enable this option if you want to see the minimap button. This button allows you to quickly access the settings or information panels.");
+ShowMinimapButtonCheckBox:SetATTTooltip(L.TOOLTIP_SHOW_MINIMAP_BUTTON);
 ShowMinimapButtonCheckBox:SetPoint("TOPLEFT", ModeLabel, "BOTTOMLEFT", 0, -8);
 end)();
 
@@ -413,14 +422,14 @@ function Print(...)
 end
 function PlayAddonMusic(music)
 	if music then
-		PlayMusic("Interface\\Addons\\LookingForDuels\\media\\audio\\" .. music);
+		PlayMusic(ADDON_PATH .. "\\media\\audio\\" .. music);
 	end
 end
 function PlayRandomMusic(audioTable)
 	if audioTable then PlayAddonMusic(audioTable[math.random(1, #audioTable)]); end
 end
 function PlayAddonSound(soundEffect)
-	if soundEffect then PlaySoundFile("Interface\\Addons\\LookingForDuels\\media\\audio\\" .. soundEffect, LookingForDuelsData.SoundEffectsChannel); end
+	if soundEffect then PlaySoundFile(ADDON_PATH .. "\\media\\audio\\" .. soundEffect, LookingForDuelsData.SoundEffectsChannel); end
 end
 function PlayRandomSound(audioTable)
 	if audioTable then PlayAddonSound(audioTable[math.random(1, #audioTable)]); end
@@ -529,11 +538,9 @@ function DuelTarget()
 end
 local function MinimapButtonOnClick(self, button)
 	if button == "RightButton" then
-		--Open the Settings UI
-		SettingsFrame:Open();
+		ToggleSettingsUI()
 	else
-		-- Left Button
-		--Open the Main UI
+		ToggleUI();
 	end
 end
 local function MinimapButtonOnEnter(self)
@@ -625,14 +632,14 @@ function ProcessDuel()
 	
 	-- Did you Win or Lose?
 	local identifier = endTime - modEndTime + (modEndTime < 3 and -5 or 0);
-	print(startTime .. " -> " .. endTime .. " = ID# " .. identifier);
+	-- print(startTime .. " -> " .. endTime .. " = ID# " .. identifier);
 	if LookingForDuelsData.Victory then
 		identifier = identifier .. "_" .. PlayerGUID .. "_" .. guid;
-		Print(LookingForDuelsData.OutOfBounds and "YOU WIN! (OUT OF BOUNDS)" or "YOU WIN!");
+		Print(LookingForDuelsData.OutOfBounds and L.YOU_WIN_OUT or L.YOU_WIN);
 		PlayVictorySound();
 	else
 		identifier = identifier .. "_" .. guid .. "_" .. PlayerGUID;
-		Print(LookingForDuelsData.OutOfBounds and "YOU LOSE! (OUT OF BOUNDS)" or "YOU LOSE!");
+		Print(LookingForDuelsData.OutOfBounds and L.YOU_LOSE_OUT or L.YOU_LOSE);
 		PlayDefeatSound();
 	end
 	
@@ -654,17 +661,17 @@ function ToggleUI()
 	Print("Placeholder function for ToggleUI.");
 end
 function ToggleSettingsUI()
-	Print("Placeholder function for ToggleSettingsUI.");
+	SettingsFrame:Open();
 end
 
--- Exposed Functions
-LookingForDuelsAPI.ConfirmDuel = ConfirmDuel;
-LookingForDuelsAPI.DeclineDuel = DeclineDuel;
-LookingForDuelsAPI.DuelTarget = DuelTarget;
-LookingForDuelsAPI.SyncAll = SyncAll;
-LookingForDuelsAPI.SyncTarget = SyncTarget;
-LookingForDuelsAPI.ToggleUI = ToggleUI;
-LookingForDuelsAPI.ToggleSettingsUI = ToggleSettingsUI;
+-- Exposed Functions [Private Local Function Visibility without Direct Accessibility]
+LookingForDuelsAPI.ConfirmDuel = function() ConfirmDuel(); end
+LookingForDuelsAPI.DeclineDuel = function() DeclineDuel(); end
+LookingForDuelsAPI.DuelTarget = function() DuelTarget(); end
+LookingForDuelsAPI.SyncAll = function() SyncAll(); end
+LookingForDuelsAPI.SyncTarget = function() SyncTarget(); end
+LookingForDuelsAPI.ToggleUI = function() ToggleUI(); end
+LookingForDuelsAPI.ToggleSettingsUI = function() ToggleSettingsUI(); end
 
 -- Hooks
 local originalStartDuel = StartDuel;
