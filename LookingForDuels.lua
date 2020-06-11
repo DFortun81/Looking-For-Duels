@@ -571,7 +571,7 @@ local OpponentClass = { __index = function(t, key)
 		return "|c" .. (RAID_CLASS_COLORS[classInfo.classFile].colorStr or "ff1eff00") .. t.name .. " (Level " .. (t.lvl or "??") .. " " .. (raceInfo.raceName or "??").. " " .. (classInfo.className or "??") .. ")|r";
 	end
 end};
-function CreateOpponent(target)
+local function CreateOpponent(target)
 	return setmetatable({
 		["name"] = UnitName(target),
 		["lvl"] = UnitLevel(target),
@@ -582,34 +582,34 @@ function CreateOpponent(target)
 end
 
 -- Functionality
-function Print(...)
+local function Print(...)
 	print(L.PREFIX .. ":", ...);
 end
-function PlayAddonMusic(music)
+local function PlayAddonMusic(music)
 	if music then
 		PlayMusic(ADDON_PATH .. "\\media\\audio\\" .. music);
 	end
 end
-function PlayRandomMusic(audioTable)
+local function PlayRandomMusic(audioTable)
 	if audioTable then PlayAddonMusic(audioTable[math.random(1, #audioTable)]); end
 end
-function PlayAddonSound(soundEffect)
+local function PlayAddonSound(soundEffect)
 	if soundEffect then PlaySoundFile(ADDON_PATH .. "\\media\\audio\\" .. soundEffect, LookingForDuelsData.SoundEffectsChannel); end
 end
-function PlayRandomSound(audioTable)
+local function PlayRandomSound(audioTable)
 	if audioTable then PlayAddonSound(audioTable[math.random(1, #audioTable)]); end
 end
-function PlayBattleMusic()
+local function PlayBattleMusic()
 	if LookingForDuelsData.BattleAudioEnabled then
 		PlayRandomMusic(LookingForDuelsData.BattleAudioOptions);
 	end
 end
-function PlayDefeatSound()
+local function PlayDefeatSound()
 	if LookingForDuelsData.DefeatAudioEnabled then
 		PlayRandomSound(LookingForDuelsData.DefeatAudioOptions);
 	end
 end
-function PlayVictorySound()
+local function PlayVictorySound()
 	if LookingForDuelsData.VictoryAudioEnabled then
 		PlayRandomSound(LookingForDuelsData.VictoryAudioOptions);
 	end
@@ -650,7 +650,7 @@ end
 local function ClearTooltip(self)
 	self.LFDUELSPROCESSING = nil;
 end
-function CacheDuel(duelString, newData)
+local function CacheDuel(duelString, newData)
 	if not CachedDuels[duelString] then
 		local timestamp, winner, loser, out = strsplit("_", duelString);
 		-- print(timestamp .. " : " .. winner .. " : " .. loser .. " : " .. (out and 1 or 0));
@@ -669,7 +669,7 @@ function CacheDuel(duelString, newData)
 		end
 	end
 end
-function CleanUpDuel()
+local function CleanUpDuel()
 	StopMusic();
 	if LookingForDuelsData.IsDueling or LookingForDuelsData.IsPending then
 		Print(ERR_DUEL_CANCELLED);
@@ -689,15 +689,15 @@ function CleanUpDuel()
 	_:UnregisterEvent("DUEL_OUTOFBOUNDS");
 	_:UnregisterEvent("DUEL_FINISHED");
 end
-function ConfirmDuel()
+local function ConfirmDuel()
 	AcceptDuel();
 	StaticPopup_Hide("DUEL_REQUESTED");
 end
-function DeclineDuel()
+local function DeclineDuel()
 	CancelDuel();
 	StaticPopup_Hide("DUEL_REQUESTED");
 end
-function DuelTarget()
+local function DuelTarget()
 	DeclineDuel();
 	StartDuel();
 end
@@ -721,7 +721,7 @@ end
 local function MinimapButtonOnLeave()
 	GameTooltip:Hide();
 end
-function ProcessDuel()
+local function ProcessDuel()
 	-- Acquire the GUID of the Opponent. [Global Persistence]
 	local startTime, CurrentOpponentName, CurrentOpponent = time(), LookingForDuelsData.CurrentOpponentName, nil;
 	local guid = rawget(RealmGUIDs, CurrentOpponentName);
@@ -816,16 +816,16 @@ function ProcessDuel()
 	-- The Duel has Ended, let's cut the music and clean up the persistent data.
 	CleanUpDuel();
 end
-function SyncAll()
+local function SyncAll()
 	SendGroupAddonMessage("?\tsync");
 end
-function SyncTarget()
+local function SyncTarget()
 	SendTargetAddonMessage("?\tsync");
 end
-function ToggleUI()
+local function ToggleUI()
 	Print("Placeholder function for ToggleUI.");
 end
-function ToggleSettingsUI()
+local function ToggleSettingsUI()
 	SettingsFrame:Open();
 end
 
